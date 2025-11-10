@@ -1,28 +1,60 @@
 ---
-title: Exploratory Data Analysis
+title: "Exploratory Data Analysis"
 format: typst
 ---
+```{r}
+# Loading libraries
+library(tidyverse)
+library(readxl)
+
+# Read in cleaned data
+sov <- read_csv("cleaned_g24_sov.csv")
+
 
 ### Question 1
 
-Put your question here.
+#How many precincts are in each congressional district?
 
 ### Answer 1
 
-Put your answer here.
+precinct_counts <- sov |>
+group_by(cddist) |>
+summarise(n_precincts = n())
+
+precinct_counts |>
+arrange(desc(n_precincts))
 
 ### Question 2
 
-Put your question here.
+#What is the range of total registered voters across precincts?
 
 ### Answer 2
 
-Put your answer here.
-
+sov |>
+ggplot(aes(x = totreg)) +
+geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+labs(
+title = "Distribution of Registered Voters by Precinct",
+x = "Total Registered Voters",
+y = "Count of Precincts"
+)
 ### Question 3
 
-Put your question here.
+#Which congressional district has the highest average registration size?
 
 ### Answer 3
 
-Put your answer here.
+avg_reg <- sov |>
+group_by(cddist) |>
+summarise(mean_reg = mean(totreg, na.rm = TRUE)) |>
+arrange(desc(mean_reg))
+
+avg_reg |>
+ggplot(aes(x = reorder(as.factor(cddist), -mean_reg), y = mean_reg)) +
+geom_col(fill = "coral") +
+labs(
+title = "Average Registered Voters per Precinct by District",
+x = "Congressional District",
+y = "Average Registration"
+) +
+theme(axis.text.x = element_text(angle = 60, hjust = 1))

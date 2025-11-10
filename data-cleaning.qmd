@@ -1,5 +1,49 @@
 ---
-title: Data Cleaning
+title: "Data Cleaning"
 format: typst
 ---
 
+```{r}
+# Loading libraries
+library(tidyverse)
+library(readxl)
+
+# Step 1: Read in the 2024 General Election precinct-level data
+sov <- read_csv("data/g24_sov_by_g24_svprec.csv")
+
+# Step 2: Standardize column names
+sov <- sov |> rename_with(tolower)
+
+# Step 3: Inspect data
+glimpse(sov)
+
+# Step 4: Check for missing values
+colSums(is.na(sov))
+
+# Step 5: Verify unique precinct identifiers
+sov |> 
+  summarise(
+    unique_keys = n_distinct(svprec_key),
+    total_rows = n()
+  )
+
+# Step 6: Ensure key numeric columns are numeric
+# (adjust if your file has other numeric columns)
+sov <- sov |>
+  mutate(
+    county = as.numeric(county),
+    addist = as.numeric(addist),
+    cddist = as.numeric(cddist),
+    sddist = as.numeric(sddist),
+    bedist = as.numeric(bedist),
+    totreg = as.numeric(totreg)
+  )
+
+# Step 7: Remove rows with missing precinct keys or registration
+sov <- sov |> filter(!is.na(svprec_key), !is.na(totreg))
+
+# Step 8: Quick range check for registration counts
+summary(sov$totreg)
+
+# Step 9: Save a cleaned version to use later
+write_csv(sov, "cleaned_g24_sov.csv")

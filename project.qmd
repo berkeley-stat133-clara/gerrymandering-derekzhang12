@@ -3,7 +3,7 @@ title: "Project: Gerrymandering"
 format: typst
 ---
 
-### Main Research Question
+### Main Research Questions
 
 On November 4th 2025, Californians will cast their votes on Proposition 50, which adopts a congressional district map drawn by the state legislature (bill AB 604) until after the 2030 census.
 
