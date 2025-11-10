@@ -1,11 +1,105 @@
 ---
-title: Gerrymandering Metrics
-format: typst
+title: dashboard
+format: dashboard
 ---
 
-### 2024 Election Results and the 2024 District Map
+## Overview
 
+This dashboard summarizes the **2024 California congressional election results**
+It highlights three key statistics—**Seats Won**, **Mean–Median Score**, and **Efficiency Gap**—and includes a map and vote-share distribution.
 
+---
 
-### 2024 Election Results and the proposed 2025 District Map
+## Load and Prepare Data
 
+```{r}
+library(tidyverse)
+library(readr)
+library(ggplot2)
+
+# Load cleaned dataset
+sov <- read_csv("cleaned_g24_sov.csv") |> 
+  rename_with(tolower)
+
+# Convert relevant columns to numeric
+sov <- sov |>
+  mutate(
+    across(starts_with("cngdem"), parse_number),
+    across(starts_with("cngrep"), parse_number)
+  )
+
+# Compute total DEM/REP votes per precinct
+sov_house <- sov |>
+  mutate(
+    house_dem = rowSums(across(starts_with("cngdem")), na.rm = TRUE),
+    house_rep = rowSums(across(starts_with("cngrep")), na.rm = TRUE)
+  )
+
+# Aggregate to district level
+votes_2024 <- sov_house |>
+  group_by(cddist) |>
+  summarise(
+    dem = sum(house_dem, na.rm = TRUE),
+    rep = sum(house_rep, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  filter(dem + rep > 0) |>
+  mutate(d_share = dem / (dem + rep))
+# Calculate key metrics
+
+mean_median_2024 <- mean(votes_2024$d_share) - median(votes_2024$d_share)
+
+wasted_votes <- function(a, b) {
+total <- a + b
+margin <- total / 2
+ifelse(a > b, a - margin, a)
+}
+
+votes_2024 <- votes_2024 |>
+mutate(
+dem_wasted = wasted_votes(dem, rep),
+rep_wasted = wasted_votes(rep, dem)
+)
+
+eff_gap_2024 <- (sum(votes_2024$rep_wasted) - sum(votes_2024$dem_wasted)) /
+sum(votes_2024$dem + votes_2024$rep)
+
+# Seats won by Democrats
+
+seats_dem <- mean(votes_2024$d_share > 0.5)
+
+# Display summary table
+
+tibble(
+`Seats Won (Democrats)` = seats_dem,
+`Mean–Median Score` = mean_median_2024,
+`Efficiency Gap` = eff_gap_2024
+)
+votes_2024 |>
+ggplot(aes(x = d_share)) +
+geom_histogram(bins = 25, fill = "steelblue", color = "black") +
+geom_vline(xintercept = 0.5, color = "red", linetype = "dashed") +
+labs(
+title = "Distribution of Democratic Vote Share by District (2024)",
+x = "Democratic Two-Party Share",
+y = "Number of Districts"
+) +
+theme_minimal()
+
+```
+
+Methodology
+
+This analysis uses:
+
+2024 precinct-level election data from the California Statewide Database
+
+Data cleaning: numeric conversion of vote columns and aggregation to congressional districts (cddist).
+
+Metrics calculated:
+
+Seats Won – percentage of districts with a Democratic majority (> 50 %)
+
+Mean–Median Score – measures asymmetry in vote distribution
+
+Efficiency Gap – compares wasted votes between parties
